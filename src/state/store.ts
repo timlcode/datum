@@ -24,6 +24,7 @@ export type DialogName =
   | 'ai-edit'
   | 'print'
   | 'settings'
+  | 'ai-settings'
   | 'about'
   | 'shortcuts';
 

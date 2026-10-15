@@ -4,7 +4,7 @@ Construction scheduling for people who still think in predecessors, lags, and th
 
 Datum is a local app: a small server on your machine and a browser UI. It schedules with the critical path method, opens the files superintendents already have, and keeps the decision log and the buyout board on the same job.
 
-Version 0.2.0. Licensed under the [GNU Affero General Public License v3.0](LICENSE).
+Version 0.2.1. Licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
 ## What it does
 
@@ -99,19 +99,33 @@ Datum writes Project XML only. Save As `.xml` when the file has to go back to Mi
 
 ## Optional AI
 
-Plain-English build, review, and edit are off until you configure a provider. Datum does not look for a particular CLI and does not call any host by default.
+Plain-English build, review, and edit are off until you configure a provider. Datum does not call any host by default. The home screen says **Set up AI** until a provider is ready, then names that provider.
 
-**OpenAI-compatible HTTP**
+Keys stay in the data directory on this computer (`ai-config.json`, mode 0600). Datum sends a key only to the provider you picked, and only while running a request. Nothing is written into the schedule file or the git repo.
+
+### After install
+
+Open **AI** on the home screen (or **AI provider** in Project settings), pick a provider, paste a key, pick a model, and **Save**. The home-screen status flips to ready without a restart. **Test connection** sends a tiny ping and does not change the schedule. **Clear** turns the active provider off and leaves saved keys on disk until you **Forget key**.
+
+1. **Anthropic** — create a key in the [Claude Console](https://platform.claude.com/settings/keys). Datum calls the Messages API at `https://api.anthropic.com` with the `x-api-key` and `anthropic-version` headers. The default model is `claude-sonnet-5-5`. `claude-opus-5-5` and `claude-haiku-5-5` are in the list. Any other model id can be typed in.
+2. **Grok (xAI)** — create a key at [console.x.ai](https://console.x.ai). Datum uses the OpenAI-compatible chat completions endpoint at `https://api.x.ai/v1`. The default model is `grok-4.7` (the current public default). `grok-4.6` and `grok-4.5` are listed, and a custom model id is allowed.
+3. **DeepSeek** — create a key at [platform.deepseek.com](https://platform.deepseek.com/api_keys). Datum posts to `https://api.deepseek.com/chat/completions` (`https://api.deepseek.com/v1` is also accepted). The default model is `deepseek-flash`. `deepseek-v4-pro`, `deepseek-chat`, and `deepseek-reasoner` are selectable, and a custom model id is allowed.
+4. **Off** — clears the active provider. AI stays optional.
+5. **Custom** — any OpenAI-compatible base URL, the same shape as `DATUM_AI_BASE_URL`. The key is optional.
+
+### Environment variables
+
+Environment variables override the saved file. Set them before starting the server. A restart is required for env changes. Saving a provider in the panel does not require a restart.
 
 ```bash
-export DATUM_AI_BASE_URL="https://your-endpoint.example/v1"
-export DATUM_AI_API_KEY="secret"          # optional
-export DATUM_AI_MODEL="your-model-name"
+export DATUM_AI_BASE_URL="https://your-endpoint.example/v1"   # wins over the file
+export DATUM_AI_API_KEY="secret"          # optional bearer; also overrides a saved key
+export DATUM_AI_MODEL="your-model-name"   # also overrides a saved model
 ```
 
 Datum posts to `{DATUM_AI_BASE_URL}/chat/completions` and expects a JSON object back.
 
-**Local command**
+**Local command** (used when `DATUM_AI_BASE_URL` is unset; also wins over the file):
 
 ```bash
 export DATUM_AI_COMMAND="/usr/local/bin/your-scheduler-model"
@@ -120,7 +134,9 @@ export DATUM_AI_ARGS=""                    # optional
 
 The program reads one JSON object on stdin (`prompt`, `rules`, `schema`, `model`, `effort`) and writes either one JSON result, or newline-delimited events (`status`, `thought`, `text`, `result`, `error`), to stdout.
 
-Restart the server after setting the variables. The home screen shows whether AI is configured. If a request fails, the dialog says so and the schedule is left unchanged until you apply a preview.
+Precedence is `DATUM_AI_BASE_URL`, then `DATUM_AI_COMMAND`, then `ai-config.json`. If only `DATUM_AI_API_KEY` or `DATUM_AI_MODEL` is set, that value replaces the saved key or model and the saved provider is still used.
+
+If a request fails, the dialog says so and the schedule is left unchanged until you apply a preview. API responses that echo the saved settings mask the key.
 
 ### Optional facts source
 

@@ -9,6 +9,7 @@ import { AiBuildDialog } from './AiBuildDialog';
 import { AiEditDialog } from './AiEditDialog';
 import { PrintDialog } from './PrintDialog';
 import { SettingsDialog } from './SettingsDialog';
+import { AiSettingsDialog } from './AiSettingsForm';
 import { CommandPalette } from './CommandPalette';
 import { Logo } from './Logo';
 
@@ -40,7 +41,7 @@ export function Dialogs({ files }: { files: FileActions }) {
   const openDialog = useStore((s) => s.openDialog);
   const project = useStore((s) => s.project);
   const [palette, setPalette] = useState(false);
-  const [version, setVersion] = useState('0.2.0');
+  const [version, setVersion] = useState('0.2.1');
 
   useEffect(() => {
     api.health().then((h) => setVersion(h.version)).catch(() => {});
@@ -64,6 +65,7 @@ export function Dialogs({ files }: { files: FileActions }) {
       {dialog === 'ai-edit' && project && <AiEditDialog onClose={close} />}
       {dialog === 'print' && project && <PrintDialog onClose={close} />}
       {dialog === 'settings' && project && <SettingsDialog onClose={close} />}
+      {dialog === 'ai-settings' && <AiSettingsDialog onClose={close} />}
       {dialog === 'shortcuts' && (
         <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
           <div className="dialog lg">
@@ -85,7 +87,7 @@ export function Dialogs({ files }: { files: FileActions }) {
               <div style={{ color: 'var(--fg-1)', lineHeight: 1.55 }}>
                 <b style={{ fontSize: 16 }}>Datum {version}</b>
                 <p style={{ margin: '6px 0' }}>Construction scheduling with a critical path, a Gantt chart, and a field office attached. Opens Microsoft Project and Primavera files, saves Project XML, and keeps decisions and buyout on the same job.</p>
-                <p style={{ margin: '6px 0', color: 'var(--fg-2)', fontSize: 12 }}>Plain-English edits are optional. Point Datum at an OpenAI-compatible endpoint or a local command when you want them. PDF export uses a local Chromium. Licensed AGPL-3.0.</p>
+                <p style={{ margin: '6px 0', color: 'var(--fg-2)', fontSize: 12 }}>Plain-English edits are optional. Set a provider from the home screen, or point Datum at an OpenAI-compatible endpoint or a local command. PDF export uses a local Chromium. Licensed AGPL-3.0.</p>
               </div>
             </div>
           </div>

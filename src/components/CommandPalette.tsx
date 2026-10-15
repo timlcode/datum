@@ -33,6 +33,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     { id: 'saveas', label: 'Save as…', group: 'File', icon: <Save />, keys: 'Ctrl+Shift+S', run: () => emitCommand('saveAs'), needsProject: true },
     { id: 'print', label: 'Print / Export PDF…', group: 'File', icon: <Printer />, keys: 'Ctrl+P', run: () => st().openDialog('print'), needsProject: true },
     { id: 'settings', label: 'Project settings…', group: 'File', icon: <Settings />, run: () => st().openDialog('settings'), needsProject: true },
+    { id: 'ai-setup', label: 'AI provider settings…', group: 'AI', icon: <Sparkles />, run: () => st().openDialog('ai-settings') },
     { id: 'ai-build', label: 'Build a schedule with AI…', group: 'AI', icon: <Sparkles />, run: () => st().openDialog('ai-build') },
     { id: 'ai-edit', label: 'Change schedule with AI…', group: 'AI', icon: <Wand2 />, keys: 'Ctrl+Shift+A', run: () => st().openDialog('ai-edit'), needsProject: true },
     { id: 'ai-review', label: 'AI schedule review', group: 'AI', icon: <ClipboardCheck />, run: () => st().setSidePanel('review'), needsProject: true },
