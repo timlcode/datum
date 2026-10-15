@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Settings, X, Plus, Trash2 } from 'lucide-react';
 import { useStore } from '../state/store';
 import { AppearanceControls } from './AppearanceMenu';
+import { AiSettingsForm } from './AiSettingsForm';
 import { addDays, dayOf, makeDateTime, todayLocal, WEEKDAYS_SHORT } from '@engine/dates';
 import type { Calendar } from '@engine/types';
 
@@ -105,6 +106,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               <button className="btn sm" onClick={() => setCal({ ...cal, exceptions: [...cal.exceptions, { date: '', working: false, name: '' }] })}><Plus /> Add day</button>
               <button className="btn sm" onClick={addHolidays}>Add US holidays</button>
             </div>
+          </div>
+          <div className="settings-ai">
+            <div className="field"><label>AI provider</label></div>
+            <AiSettingsForm />
           </div>
         </div>
         <div className="d-foot">

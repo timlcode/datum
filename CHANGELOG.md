@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Optional AI can be turned on after install from the home screen or Project settings. Anthropic, Grok, and DeepSeek are built in, plus a custom OpenAI-compatible endpoint, or Off.
+- The API key is stored only in the local data directory (`ai-config.json`, mode 0600). Responses mask it. `DATUM_AI_BASE_URL` and `DATUM_AI_COMMAND` still override the file.
+
 ## 0.2.0
 
 First public release of Datum as a standalone local app.

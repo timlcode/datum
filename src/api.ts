@@ -41,7 +41,7 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  health: () => call<{ version: string; java: boolean; ai: boolean; aiProvider: string; chromium: boolean; model: string; facts: boolean }>('/api/health'),
+  health: () => call<{ version: string; java: boolean; ai: boolean; aiProvider: string; aiLabel: string; aiSource: string; chromium: boolean; model: string; facts: boolean }>('/api/health'),
   places: () => call<{ places: Place[]; recent: RecentEntry[] }>('/api/fs/places'),
   list: (path: string, all = false) => call<{ path: string; parent: string | null; entries: FsEntry[] }>(`/api/fs/list?path=${encodeURIComponent(path)}${all ? '&all=1' : ''}`),
   mkdir: (path: string) => call<{ path: string }>('/api/fs/mkdir', { method: 'POST', body: JSON.stringify({ path }) }),
@@ -52,6 +52,9 @@ export const api = {
   printJob: (project: Project, options: unknown) => call<{ token: string }>('/api/print/job', { method: 'POST', body: JSON.stringify({ project, options }) }),
   printPdf: (project: Project, options: Record<string, unknown>) => call<{ path: string; bytes: number }>('/api/print/pdf', { method: 'POST', body: JSON.stringify({ project, options }) }),
   openExternal: (path: string) => call('/api/open-external', { method: 'POST', body: JSON.stringify({ path }) }),
+  aiConfig: () => call<AiConfigView>('/api/ai/config'),
+  aiSave: (body: AiConfigUpdate) => call<AiConfigView>('/api/ai/config', { method: 'PUT', body: JSON.stringify(body) }),
+  aiTest: (body: AiTestRequest) => call<{ provider: string; model: string; detail: string }>('/api/ai/test', { method: 'POST', body: JSON.stringify(body) }),
   attachPath: (path: string, mode: AttachmentMode) => call<{ attachment: Attachment }>('/api/ai/attach', { method: 'POST', body: JSON.stringify({ path, mode }) }),
   attachFile: async (file: File, mode: AttachmentMode) => {
     const buf = await file.arrayBuffer();
@@ -61,6 +64,48 @@ export const api = {
     return call<{ attachment: Attachment }>('/api/ai/attach', { method: 'POST', body: JSON.stringify({ name: file.name, base64: btoa(bin), mode }) });
   },
 };
+
+export type AiProviderId = 'off' | 'anthropic' | 'grok' | 'deepseek' | 'custom';
+
+export interface AiPreset {
+  id: Exclude<AiProviderId, 'off'>;
+  label: string;
+  hint: string;
+  models: string[];
+  defaultModel: string;
+  needsBaseUrl: boolean;
+  needsKey: boolean;
+}
+
+export interface AiProviderView {
+  model: string;
+  baseUrl: string;
+  keySet: boolean;
+  keyHint: string;
+}
+
+export interface AiConfigView {
+  activeProvider: AiProviderId;
+  providers: Record<string, AiProviderView>;
+  presets: AiPreset[];
+  effective: { enabled: boolean; provider: string; model: string; label: string; source: string };
+  envOverride: boolean;
+  envNote: string;
+}
+
+export interface AiConfigUpdate {
+  activeProvider: AiProviderId;
+  provider?: { apiKey?: string; model?: string; baseUrl?: string; clearKey?: boolean };
+}
+
+export interface AiTestRequest {
+  provider?: AiProviderId;
+  apiKey?: string;
+  model?: string;
+  baseUrl?: string;
+}
+
+export const AI_CONFIG_EVENT = 'datum-ai-config';
 
 export interface AiEvent {
   type: 'thought' | 'text' | 'status' | 'result' | 'error';

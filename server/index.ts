@@ -7,7 +7,8 @@ import { platform } from 'node:os';
 import { APP_ROOT, DIST_DIR, HOME, PORT, TMP_DIR, expandHome } from './paths';
 import { javaAvailable, readWithMpxj } from './mpxj';
 import { listDirectory, places, pushRecent, readRecent, removeRecent } from './files';
-import { aiStatus, runStructuredWithRetry } from './ai';
+import { aiStatus, runStructuredWithRetry, testAiConnection } from './ai';
+import { publicAiConfig, updateAiConfig } from './aiConfig';
 import { factsConfigured, formatFacts, gatherFacts, instructionWantsFacts, NO_FACTS_NOTE } from './plugins/facts';
 import {
   EDIT_RULES, EDIT_SCHEMA, GENERATE_RULES, GENERATE_SCHEMA, REVIEW_RULES, REVIEW_SCHEMA,
@@ -25,9 +26,9 @@ app.use(express.json({ limit: '200mb' }));
 
 const VERSION = (() => {
   try {
-    return (JSON.parse(readFileSync(join(APP_ROOT, 'package.json'), 'utf8')) as { version?: string }).version || '0.2.0';
+    return (JSON.parse(readFileSync(join(APP_ROOT, 'package.json'), 'utf8')) as { version?: string }).version || '0.2.1';
   } catch {
-    return '0.2.0';
+    return '0.2.1';
   }
 })();
 
@@ -41,6 +42,8 @@ app.get('/api/health', async (_req, res) => {
     java: await javaAvailable(),
     ai: ai.enabled,
     aiProvider: ai.provider,
+    aiLabel: ai.label,
+    aiSource: ai.source,
     model: ai.model,
     facts: factsConfigured(),
     chromium: !!findChromium(),
@@ -191,6 +194,25 @@ app.post('/api/ai/attach', async (req, res) => {
 });
 
 // ---------- AI ----------
+
+app.get('/api/ai/config', (_req, res) => {
+  ok(res, publicAiConfig());
+});
+
+app.put('/api/ai/config', (req, res) => {
+  try {
+    ok(res, updateAiConfig(req.body));
+  } catch (err) {
+    fail(res, (err as Error).message);
+  }
+});
+
+app.post('/api/ai/test', async (req, res) => {
+  const result = await testAiConnection(req.body ?? {});
+  if (!result.ok) return fail(res, result.error);
+  ok(res, { provider: result.provider, model: result.model, detail: result.detail });
+});
+
 
 function sse(res: Response) {
   res.setHeader('Content-Type', 'text/event-stream');

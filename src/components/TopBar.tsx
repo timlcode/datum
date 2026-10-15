@@ -94,6 +94,8 @@ export function TopBar({ files }: { files: FileActions }) {
             <button onClick={() => setSidePanel(sidePanel === 'review' ? null : 'review')}><ClipboardCheck /> AI schedule review</button>
             <div className="sep" />
             <button onClick={() => openDialog('ai-build')}><Sparkles /> Build a new schedule with AI…</button>
+            <div className="sep" />
+            <button onClick={() => openDialog('ai-settings')}><Settings /> AI provider…</button>
           </div>
         )}
       </div>

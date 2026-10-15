@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FilePlus2, FolderOpen, Sparkles, School, FileClock, RotateCcw, X, Clock } from 'lucide-react';
 import { Logo } from './Logo';
 import { AppearanceMenu } from './AppearanceMenu';
-import { api, type RecentEntry } from '../api';
+import { AI_CONFIG_EVENT, api, type RecentEntry } from '../api';
 import { readAutosave, clearAutosave, useStore } from '../state/store';
 import { useFileActions } from '../hooks/useFileActions';
 import { shortcutEvents } from '../hooks/useShortcuts';
@@ -24,12 +24,15 @@ export function Home() {
   const openDialog = useStore((s) => s.openDialog);
   const setProject = useStore((s) => s.setProject);
   const [recent, setRecent] = useState<RecentEntry[]>([]);
-  const [health, setHealth] = useState<{ java: boolean; ai: boolean; aiProvider: string; chromium: boolean; model: string; version: string } | null>(null);
+  const [health, setHealth] = useState<{ java: boolean; ai: boolean; aiProvider: string; aiLabel?: string; chromium: boolean; model: string; version: string } | null>(null);
   const [autosave, setAutosave] = useState(readAutosave());
 
   useEffect(() => {
     api.places().then((r) => setRecent(r.recent)).catch(() => {});
-    api.health().then(setHealth).catch(() => {});
+    const refresh = () => { api.health().then(setHealth).catch(() => {}); };
+    refresh();
+    window.addEventListener(AI_CONFIG_EVENT, refresh);
+    return () => window.removeEventListener(AI_CONFIG_EVENT, refresh);
   }, []);
 
   useEffect(() => {
@@ -43,7 +46,10 @@ export function Home() {
 
   return (
     <div className="home">
-      <div className="home-tools"><AppearanceMenu /></div>
+      <div className="home-tools">
+        <button className="btn ghost" onClick={() => openDialog('ai-settings')} title="AI provider"><Sparkles /> <span className="lbl">AI</span></button>
+        <AppearanceMenu />
+      </div>
       <div className="inner">
         <div className="hero">
           <Logo size={44} />
@@ -130,7 +136,12 @@ export function Home() {
             Project files: <span className={health?.java ? 'ok' : 'bad'}>{health ? (health.java ? 'ready' : 'Java missing') : '…'}</span>
           </span>
           <span>
-            AI{health?.model ? ` (${health.model})` : ''}: <span className={health?.ai ? 'ok' : 'bad'}>{health ? (health.ai ? health.aiProvider : 'optional, not configured') : '…'}</span>
+            AI:{' '}
+            {health ? (
+              <button type="button" className={health.ai ? 'linkish ok' : 'linkish'} onClick={() => openDialog('ai-settings')}>
+                {health.ai ? `${health.aiLabel || health.aiProvider} ready${health.model ? ` · ${health.model}` : ''}` : 'Set up AI'}
+              </button>
+            ) : '…'}
           </span>
           <span>
             PDF export: <span className={health?.chromium ? 'ok' : 'bad'}>{health ? (health.chromium ? 'ready' : 'no browser found') : '…'}</span>
