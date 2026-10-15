@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-server/
+*.log
+.env
+.env.*
+uploads/
+agent-tools/
+vendor/mpxj/*.jar
+vendor/mpxj/*.partial
+vendor/mpxj/LICENSE-NOTES.txt
+
+# OS junk
+.DS_Store
+Thumbs.db
+*.swp
+*~

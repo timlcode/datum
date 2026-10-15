@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Restart a built Datum server. Safe on Linux and macOS: it stops whatever is
+# listening on the API port, then starts dist-server/index.js again.
+set -euo pipefail
+
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PORT="${DATUM_PORT:-4517}"
+DATA_DIR="${DATUM_DATA_DIR:-$HOME/.local/share/datum}"
+LOG="$DATA_DIR/server.log"
+mkdir -p "$DATA_DIR"
+
+port_pids() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true
+    return
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnpH "sport = :$PORT" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true
+    return
+  fi
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -n tcp "$PORT" 2>/dev/null || true
+  fi
+}
+
+pids="$(port_pids | tr '\n' ' ')"
+if [[ -n "${pids// }" ]]; then
+  echo "stopping $pids"
+  kill $pids 2>/dev/null || true
+  sleep 0.3
+fi
+
+if [[ ! -f "$APP_DIR/dist-server/index.js" ]]; then
+  echo "Datum is not built. Run: npm run build" >&2
+  exit 1
+fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js was not found." >&2
+  exit 1
+fi
+
+if command -v setsid >/dev/null 2>&1; then
+  (cd "$APP_DIR" && setsid nohup node dist-server/index.js >>"$LOG" 2>&1 &)
+else
+  (cd "$APP_DIR" && nohup node dist-server/index.js >>"$LOG" 2>&1 &)
+fi
+
+for _ in $(seq 1 60); do
+  if curl -sf -m 1 "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then
+    echo "Datum server up on :$PORT"
+    exit 0
+  fi
+  sleep 0.1
+done
+echo "server did not come up; see $LOG" >&2
+exit 1

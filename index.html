@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" type="image/svg+xml" href="/datum.svg" />
+    <title>Datum</title>
+    <script>
+      try {
+        var a = JSON.parse(localStorage.getItem('datum.appearance') || '{}');
+        var theme = a.theme === 'light' || a.theme === 'hue' ? a.theme : 'dark';
+        var accent = a.accent === 'steel' || a.accent === 'green' ? a.accent : 'amber';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.accent = accent;
+        document.documentElement.dataset.motion = a.motion === false ? 'off' : 'on';
+        document.documentElement.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

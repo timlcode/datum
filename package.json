@@ -1,0 +1,40 @@
+{
+  "name": "datum",
+  "version": "0.2.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Datum — construction scheduling for the field office and the critical path",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4731 --strictPort",
+    "fetch:mpxj": "bash scripts/fetch-mpxj.sh",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "vite build && npm run build:server",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist-server/index.js --packages=external",
+    "start": "node dist-server/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.1.1",
+    "@fontsource-variable/jetbrains-mono": "^5.1.1",
+    "express": "^4.21.2",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "esbuild": "^0.24.2",
+    "playwright-core": "^1.63.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  }
+}

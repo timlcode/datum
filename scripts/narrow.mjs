@@ -1,0 +1,11 @@
+import { chromium } from 'playwright-core';
+const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true });
+const page = await browser.newPage({ viewport: { width: 960, height: 700 } });
+await page.goto('http://127.0.0.1:4517');
+await page.evaluate(() => localStorage.removeItem('datum.autosave'));
+await page.goto('http://127.0.0.1:4517');
+await page.click('text=School expansion template');
+await page.waitForSelector('.grid tbody tr');
+await page.waitForTimeout(400);
+await page.screenshot({ path: '/tmp/datum-shots/50-half-screen.png' });
+await browser.close();

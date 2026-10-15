@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# Start the local Datum server (if it is not already healthy) and open the UI.
+# Optional argument: a schedule file to open.
+#   bin/datum
+#   bin/datum ~/Documents/Datum/cedar-ridge.xml
+#
+# Environment:
+#   DATUM_PORT       API port (default 4517)
+#   DATUM_DATA_DIR   data directory (default ~/.local/share/datum)
+#   DATUM_BROWSER    browser executable to prefer
+
+set -euo pipefail
+
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PORT="${DATUM_PORT:-4517}"
+URL="http://127.0.0.1:${PORT}"
+DATA_DIR="${DATUM_DATA_DIR:-$HOME/.local/share/datum}"
+LOG="$DATA_DIR/server.log"
+mkdir -p "$DATA_DIR"
+
+say() {
+  echo "Datum: $*" >&2
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Datum" "$*" >/dev/null 2>&1 || true
+  elif command -v osascript >/dev/null 2>&1; then
+    osascript -e "display notification \"$*\" with title \"Datum\"" >/dev/null 2>&1 || true
+  fi
+}
+
+healthy() {
+  curl -sf -m 2 "$URL/api/health" >/dev/null 2>&1
+}
+
+running_version() {
+  curl -sf -m 2 "$URL/api/health" 2>/dev/null | sed -n 's/.*"version":"\([^"]*\)".*/\1/p'
+}
+
+built_version() {
+  sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$APP_DIR/package.json" | head -1
+}
+
+port_pids() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true
+    return
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnpH "sport = :$PORT" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true
+    return
+  fi
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -n tcp "$PORT" 2>/dev/null || true
+  fi
+}
+
+stop_port() {
+  local pids
+  pids="$(port_pids | tr '\n' ' ')"
+  if [[ -n "${pids// }" ]]; then
+    kill $pids 2>/dev/null || true
+    sleep 0.3
+  fi
+}
+
+start_server() {
+  if ! command -v node >/dev/null 2>&1; then
+    say "Node.js was not found. Install Node.js 22 or newer, then run this again."
+    exit 1
+  fi
+  if [[ ! -f "$APP_DIR/dist-server/index.js" ]]; then
+    say "Datum is not built yet. In $APP_DIR run: npm install && npm run build"
+    exit 1
+  fi
+  if command -v setsid >/dev/null 2>&1; then
+    (cd "$APP_DIR" && setsid nohup node dist-server/index.js >>"$LOG" 2>&1 &)
+  else
+    (cd "$APP_DIR" && nohup node dist-server/index.js >>"$LOG" 2>&1 &)
+  fi
+  local _
+  for _ in $(seq 1 60); do
+    healthy && return 0
+    sleep 0.1
+  done
+  say "The server did not start. See $LOG"
+  exit 1
+}
+
+if healthy; then
+  if [[ "$(running_version)" != "$(built_version)" ]]; then
+    stop_port
+    start_server
+  fi
+else
+  start_server
+fi
+
+if [[ $# -ge 1 && -f "$1" ]]; then
+  file="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+  if command -v python3 >/dev/null 2>&1; then
+    enc="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$file")"
+  else
+    enc="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$file")"
+  fi
+  URL="${URL}/?open=${enc}"
+fi
+
+open_url() {
+  local url="$1" os bin
+  os="$(uname -s)"
+  if [[ -n "${DATUM_BROWSER:-}" ]] && command -v "$DATUM_BROWSER" >/dev/null 2>&1; then
+    "$DATUM_BROWSER" --app="$url" >/dev/null 2>&1 &
+    return
+  fi
+  if [[ "$os" == "Darwin" ]]; then
+    if [[ -d "/Applications/Google Chrome.app" ]]; then
+      open -na "Google Chrome" --args --app="$url"
+      return
+    fi
+    if [[ -d "/Applications/Chromium.app" ]]; then
+      open -na "Chromium" --args --app="$url"
+      return
+    fi
+    open "$url"
+    return
+  fi
+  for bin in chromium chromium-browser google-chrome google-chrome-stable microsoft-edge brave-browser; do
+    if command -v "$bin" >/dev/null 2>&1; then
+      "$bin" --app="$url" >/dev/null 2>&1 &
+      return
+    fi
+  done
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$url" >/dev/null 2>&1 &
+    return
+  fi
+  if command -v open >/dev/null 2>&1; then
+    open "$url"
+    return
+  fi
+  say "Server is running at $url"
+}
+
+open_url "$URL"
